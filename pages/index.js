@@ -2,6 +2,105 @@ import Head from "next/head";
 import { useState, useEffect, useMemo } from "react";
 import { getSupabase } from "../lib/supabase";
 
+const ACCESS_CODE = "DickenF12";
+const ACCESS_KEY = "dicken-access-v1";
+
+function CodeGate({ onUnlock }) {
+  const [input, setInput] = useState("");
+  const [shake, setShake] = useState(false);
+
+  function attempt() {
+    if (input.trim() === ACCESS_CODE) {
+      localStorage.setItem(ACCESS_KEY, "1");
+      onUnlock();
+    } else {
+      setShake(true);
+      setTimeout(() => setShake(false), 600);
+      setInput("");
+    }
+  }
+
+  function onKey(e) {
+    if (e.key === "Enter") attempt();
+  }
+
+  return (
+    <>
+      <Head>
+        <title>Dicken · Sommarmotion 2026</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+      </Head>
+      <div className="gate-root">
+        <style>{`
+          @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap');
+          *{box-sizing:border-box;margin:0;padding:0;}
+          html,body{height:100%;}
+          .gate-root{
+            min-height:100vh;
+            background:radial-gradient(120% 140% at 0% 0%, #17374F 0%, #0E2A52 55%);
+            display:flex;align-items:center;justify-content:center;
+            font-family:'Barlow',system-ui,sans-serif;
+            -webkit-font-smoothing:antialiased;
+            padding:20px;
+          }
+          .gate-card{
+            background:#fff;border-radius:20px;padding:40px 36px 36px;
+            width:100%;max-width:380px;
+            box-shadow:0 24px 60px -16px rgba(8,20,35,.5);
+          }
+          .gate-eye{
+            font-family:'Barlow Condensed',sans-serif;font-weight:700;
+            letter-spacing:.22em;text-transform:uppercase;font-size:12px;
+            color:#E11926;margin-bottom:12px;
+          }
+          .gate-title{
+            font-family:'Barlow Condensed',sans-serif;font-weight:800;
+            font-size:32px;line-height:1.1;color:#15233D;margin-bottom:6px;
+          }
+          .gate-sub{font-size:14px;color:#6C7F9A;margin-bottom:28px;font-weight:500;}
+          .gate-label{display:block;font-size:12.5px;font-weight:600;color:#6C7F9A;margin-bottom:6px;letter-spacing:.04em;}
+          .gate-input{
+            width:100%;border:1.5px solid #E2E8F1;border-radius:10px;
+            padding:13px 14px;font-size:16px;font-family:inherit;color:#15233D;
+            letter-spacing:.08em;transition:border-color .15s;
+          }
+          .gate-input:focus{outline:none;border-color:#E11926;}
+          .gate-btn{
+            width:100%;margin-top:14px;border:none;border-radius:10px;padding:14px;
+            background:#E11926;color:#fff;font-family:'Barlow Condensed',sans-serif;
+            font-weight:700;letter-spacing:.08em;text-transform:uppercase;font-size:16px;
+            cursor:pointer;transition:background .15s;
+          }
+          .gate-btn:hover{background:#C0141F;}
+          @keyframes shake{
+            0%,100%{transform:translateX(0);}
+            20%,60%{transform:translateX(-8px);}
+            40%,80%{transform:translateX(8px);}
+          }
+          .gate-shake{animation:shake .4s ease;}
+        `}</style>
+        <div className="gate-card">
+          <div className="gate-eye">Dicken · Sommarmotion 2026</div>
+          <div className="gate-title">Ange tillgångskod</div>
+          <div className="gate-sub">Bara Dicken-spelare har tillgång. Koden hittar du hos lagkaptenen.</div>
+          <label className="gate-label" htmlFor="gate-input">Kod</label>
+          <input
+            id="gate-input"
+            className={`gate-input${shake ? " gate-shake" : ""}`}
+            type="password"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={onKey}
+            placeholder="••••••••••"
+            autoFocus
+          />
+          <button className="gate-btn" onClick={attempt}>Gå vidare</button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 const TYPES = [
   "Löpning",
   "Promenad",
@@ -44,7 +143,21 @@ function prettyDate(iso) {
   return `${d} ${months[m - 1]}`;
 }
 
-export default function SommarMotion() {
+export default function Page() {
+  const [unlocked, setUnlocked] = useState(false);
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    if (localStorage.getItem(ACCESS_KEY) === "1") setUnlocked(true);
+    setChecking(false);
+  }, []);
+
+  if (checking) return null;
+  if (!unlocked) return <CodeGate onUnlock={() => setUnlocked(true)} />;
+  return <SommarMotion />;
+}
+
+function SommarMotion() {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dbError, setDbError] = useState(false);
