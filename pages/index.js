@@ -95,6 +95,10 @@ function CodeGate({ onUnlock }) {
             autoFocus
           />
           <button className="gate-btn" onClick={attempt}>Gå vidare</button>
+          <p style={{marginTop:"18px",textAlign:"center",fontSize:"12.5px",color:"#9FB4D2"}}>
+            Genom att fortsätta godkänner du våra{" "}
+            <a href="/villkor" style={{color:"#6C7F9A",textDecoration:"underline"}}>användarvillkor & integritetspolicy</a>.
+          </p>
         </div>
       </div>
     </>
@@ -600,6 +604,10 @@ function SommarMotion() {
           <div className="sm-foot">
             Alla timmar samlas i en gemensam lista som alla med länken ser och kan fylla på.{" "}
             <button onClick={load}>Uppdatera</button>
+            <br />
+            <a href="/villkor" style={{color:"#6C7F9A",textDecoration:"underline",marginTop:"8px",display:"inline-block"}}>
+              Användarvillkor & integritetspolicy
+            </a>
           </div>
         </div>
       </div>
