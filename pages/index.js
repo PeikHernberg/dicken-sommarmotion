@@ -82,7 +82,7 @@ function CodeGate({ onUnlock }) {
         <div className="gate-card">
           <div className="gate-eye">Dicken · Sommarmotion 2026</div>
           <div className="gate-title">Ange tillgångskod</div>
-          <div className="gate-sub">Bara Dicken-spelare har tillgång. Koden hittar du hos lagkaptenen.</div>
+          <div className="gate-sub">Bara Dicken-spelare har tillgång. Koden får du av tränaren.</div>
           <label className="gate-label" htmlFor="gate-input">Kod</label>
           <input
             id="gate-input"
