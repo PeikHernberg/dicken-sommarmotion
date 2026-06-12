@@ -1,6 +1,6 @@
 import Head from "next/head";
 import { useState, useEffect, useMemo } from "react";
-import { supabase } from "../lib/supabase";
+import { getSupabase } from "../lib/supabase";
 
 const TYPES = [
   "Löpning",
@@ -60,7 +60,7 @@ export default function SommarMotion() {
 
   async function load() {
     setDbError(false);
-    const { data, error: fetchError } = await supabase
+    const { data, error: fetchError } = await getSupabase()
       .from("entries")
       .select("*")
       .order("created_at", { ascending: false });
@@ -117,7 +117,7 @@ export default function SommarMotion() {
       return setError("Skriv kort vad du gjorde.");
 
     setSaving(true);
-    const { data, error: insertError } = await supabase
+    const { data, error: insertError } = await getSupabase()
       .from("entries")
       .insert({
         name: cleanName,
@@ -140,7 +140,7 @@ export default function SommarMotion() {
   }
 
   async function remove(id) {
-    const { error: delError } = await supabase
+    const { error: delError } = await getSupabase()
       .from("entries")
       .delete()
       .eq("id", id);
