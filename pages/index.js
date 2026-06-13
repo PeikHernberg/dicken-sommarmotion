@@ -1,4 +1,5 @@
 import Head from "next/head";
+import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 import { getSupabase } from "../lib/supabase";
 
@@ -342,6 +343,17 @@ function SommarMotion() {
           .sm-stat b{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:22px;color:#EAF1F8;display:block;}
           .sm-stat span{display:block;font-size:12px;color:var(--muted-d);letter-spacing:.04em;}
 
+          .sm-plan{
+            display:inline-flex;align-items:center;gap:8px;margin-top:22px;
+            font-family:'Barlow Condensed',sans-serif;font-weight:700;
+            letter-spacing:.06em;text-transform:uppercase;font-size:14px;
+            color:#EAF1F8;background:rgba(255,255,255,.08);
+            border:1px solid rgba(255,255,255,.16);border-radius:10px;
+            padding:11px 18px;text-decoration:none;transition:background .15s;
+          }
+          .sm-plan:hover{background:rgba(255,255,255,.16);}
+          .sm-plan span{color:var(--red-2);}
+
           .sm-cols{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;margin-top:18px;}
           .sm-card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 20px 22px;}
           .sm-h{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;
@@ -470,6 +482,10 @@ function SommarMotion() {
                 <span>h i snitt per spelare</span>
               </div>
             </div>
+
+            <Link href="/traningsplan" className="sm-plan">
+              <span>▶</span> Sommarens två träningspass
+            </Link>
           </section>
 
           {dbError && (
