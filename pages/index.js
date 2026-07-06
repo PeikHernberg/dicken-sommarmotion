@@ -211,6 +211,15 @@ function SommarMotion() {
     return [...map.values()].sort((a, b) => b.hours - a.hours);
   }, [entries]);
 
+  const medianHoursPerParticipant = useMemo(() => {
+    if (leaderboard.length === 0) return 0;
+    const sorted = [...leaderboard].map((p) => p.hours).sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 === 0
+      ? (sorted[mid - 1] + sorted[mid]) / 2
+      : sorted[mid];
+  }, [leaderboard]);
+
   const feed = useMemo(
     () =>
       [...entries].sort((a, b) => {
@@ -478,8 +487,8 @@ function SommarMotion() {
                 <span>spelare med</span>
               </div>
               <div className="sm-stat">
-                <b>{leaderboard.length ? fmt(total / leaderboard.length) : "0"}</b>
-                <span>h i snitt per spelare</span>
+                <b>{fmt(medianHoursPerParticipant)}</b>
+                <span>h i median per spelare</span>
               </div>
             </div>
 
