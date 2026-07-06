@@ -211,14 +211,24 @@ function SommarMotion() {
     return [...map.values()].sort((a, b) => b.hours - a.hours);
   }, [entries]);
 
-  const medianHoursPerParticipant = useMemo(() => {
-    if (leaderboard.length === 0) return 0;
-    const sorted = [...leaderboard].map((p) => p.hours).sort((a, b) => a - b);
+  const medianHoursPerParticipantPerWeek = useMemo(() => {
+    const map = new Map();
+    for (const e of entries) {
+      const key = e.name.trim().toLowerCase();
+      const d = new Date(e.date + "T00:00:00");
+      const weekStart = new Date(d);
+      const dayOffset = (d.getDay() + 6) % 7; // Monday = 0
+      weekStart.setDate(d.getDate() - dayOffset);
+      const weekKey = `${key}|${weekStart.toISOString().slice(0, 10)}`;
+      map.set(weekKey, (map.get(weekKey) || 0) + (Number(e.hours) || 0));
+    }
+    const sorted = [...map.values()].sort((a, b) => a - b);
+    if (sorted.length === 0) return 0;
     const mid = Math.floor(sorted.length / 2);
     return sorted.length % 2 === 0
       ? (sorted[mid - 1] + sorted[mid]) / 2
       : sorted[mid];
-  }, [leaderboard]);
+  }, [entries]);
 
   const feed = useMemo(
     () =>
@@ -487,8 +497,8 @@ function SommarMotion() {
                 <span>spelare med</span>
               </div>
               <div className="sm-stat">
-                <b>{fmt(medianHoursPerParticipant)}</b>
-                <span>h i median per spelare</span>
+                <b>{fmt(medianHoursPerParticipantPerWeek)}</b>
+                <span>h i median per spelare/vecka</span>
               </div>
             </div>
 
