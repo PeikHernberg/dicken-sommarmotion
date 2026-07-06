@@ -148,6 +148,52 @@ function prettyDate(iso) {
   return `${d} ${months[m - 1]}`;
 }
 
+function isoToLocalDate(iso) {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function toIsoDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate()
+  ).padStart(2, "0")}`;
+}
+
+function shiftIso(iso, deltaDays) {
+  const d = isoToLocalDate(iso);
+  d.setDate(d.getDate() + deltaDays);
+  return toIsoDate(d);
+}
+
+function daysBetween(aIso, bIso) {
+  return Math.round((isoToLocalDate(bIso) - isoToLocalDate(aIso)) / 86400000);
+}
+
+function calcStreaks(dates) {
+  const sorted = [...dates].sort();
+  let best = 0;
+  let run = 0;
+  let prev = null;
+  for (const d of sorted) {
+    run = prev !== null && daysBetween(prev, d) === 1 ? run + 1 : 1;
+    best = Math.max(best, run);
+    prev = d;
+  }
+
+  const todayIso = toIsoDate(new Date());
+  const yesterdayIso = shiftIso(todayIso, -1);
+  const dateSet = new Set(dates);
+  let current = 0;
+  if (dateSet.has(todayIso) || dateSet.has(yesterdayIso)) {
+    let cursor = dateSet.has(todayIso) ? todayIso : yesterdayIso;
+    while (dateSet.has(cursor)) {
+      current += 1;
+      cursor = shiftIso(cursor, -1);
+    }
+  }
+  return { current, best };
+}
+
 export default function Page() {
   const [unlocked, setUnlocked] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -203,12 +249,16 @@ function SommarMotion() {
     const map = new Map();
     for (const e of entries) {
       const key = e.name.trim().toLowerCase();
-      const cur = map.get(key) || { name: e.name.trim(), hours: 0, sessions: 0 };
+      const cur =
+        map.get(key) || { name: e.name.trim(), hours: 0, sessions: 0, dates: [] };
       cur.hours += Number(e.hours) || 0;
       cur.sessions += 1;
+      cur.dates.push(e.date);
       map.set(key, cur);
     }
-    return [...map.values()].sort((a, b) => b.hours - a.hours);
+    return [...map.values()]
+      .map((p) => ({ ...p, streak: calcStreaks(p.dates) }))
+      .sort((a, b) => b.hours - a.hours);
   }, [entries]);
 
   const medianHoursPerParticipantPerWeek = useMemo(() => {
@@ -407,6 +457,7 @@ function SommarMotion() {
           .sm-rank.top{color:var(--red);}
           .sm-lbname{flex:1;font-weight:600;font-size:14.5px;min-width:0;}
           .sm-lbsess{font-size:12px;color:var(--muted);font-weight:500;}
+          .sm-lbstreak{font-size:12px;color:var(--red);font-weight:600;}
           .sm-lbh{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:20px;font-variant-numeric:tabular-nums;}
 
           .sm-feed{margin-top:16px;}
@@ -602,6 +653,9 @@ function SommarMotion() {
                       <span className="sm-lbname">
                         {p.name}
                         <span className="sm-lbsess"> · {p.sessions} pass</span>
+                        {p.streak.current >= 2 && (
+                          <span className="sm-lbstreak"> · 🔥 {p.streak.current} dagar</span>
+                        )}
                       </span>
                       <span className="sm-lbh">{fmt(p.hours)} h</span>
                     </li>
