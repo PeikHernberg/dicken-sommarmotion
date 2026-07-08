@@ -1,6 +1,6 @@
 import Head from "next/head";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { getSupabase } from "../lib/supabase";
 
 const NAME_KEY = "dicken-name-v1";
@@ -193,13 +193,18 @@ function ExerciseRow({ item }) {
   );
 }
 
-function PassCard({ pass, onStart }) {
+function PassCard({ pass, onStart, completedCount }) {
   return (
     <section className="tp-card">
       <div className="tp-chead">
         <span className="tp-ctag">{pass.tag}</span>
         <h2 className="tp-ctitle">{pass.title}</h2>
         <span className="tp-cnote">{pass.note}</span>
+        {completedCount > 0 && (
+          <span className="tp-count">
+            ✅ Klarat {completedCount} {completedCount === 1 ? "gång" : "gånger"}
+          </span>
+        )}
       </div>
       <button className="tp-start" onClick={onStart}>
         ▶ Starta passet
@@ -215,7 +220,7 @@ function PassCard({ pass, onStart }) {
 }
 
 // Guided, one-exercise-at-a-time player with logging at the end.
-function PassPlayer({ pass, onClose }) {
+function PassPlayer({ pass, onClose, onLogged }) {
   const steps = [
     ...WARMUP.items.map((it) => ({ ...it, part: it.part || "Uppvärmning" })),
     ...pass.items,
@@ -255,7 +260,7 @@ function PassPlayer({ pass, onClose }) {
 
     setSaving(true);
     localStorage.setItem(NAME_KEY, cleanName);
-    const { error: insertError } = await getSupabase()
+    const { data, error: insertError } = await getSupabase()
       .from("entries")
       .insert({
         name: cleanName,
@@ -263,9 +268,14 @@ function PassPlayer({ pass, onClose }) {
         type: `${pass.tag} · ${pass.title}`,
         date,
         created_at: Date.now(),
-      });
+      })
+      .select()
+      .single();
     if (insertError) setError("Kunde inte logga passet. Försök igen.");
-    else setSaved(true);
+    else {
+      setSaved(true);
+      onLogged?.(data, cleanName);
+    }
     setSaving(false);
   }
 
@@ -460,6 +470,37 @@ function fmtHours(h) {
 
 export default function Traningsplan() {
   const [active, setActive] = useState(null); // PASS_A | PASS_B | null
+  const [entries, setEntries] = useState([]);
+  const [playerName, setPlayerName] = useState("");
+
+  useEffect(() => {
+    const stored = localStorage.getItem(NAME_KEY);
+    if (stored) setPlayerName(stored);
+
+    getSupabase()
+      .from("entries")
+      .select("*")
+      .then(({ data, error }) => {
+        if (!error) setEntries(data || []);
+      });
+  }, []);
+
+  const sessionCounts = useMemo(() => {
+    const key = playerName.trim().toLowerCase();
+    const counts = { [PASS_A.tag]: 0, [PASS_B.tag]: 0 };
+    if (!key) return counts;
+    for (const e of entries) {
+      if (e.name.trim().toLowerCase() !== key) continue;
+      if (e.type?.startsWith(PASS_A.tag)) counts[PASS_A.tag] += 1;
+      else if (e.type?.startsWith(PASS_B.tag)) counts[PASS_B.tag] += 1;
+    }
+    return counts;
+  }, [entries, playerName]);
+
+  function handleLogged(entry, name) {
+    setEntries((prev) => [entry, ...prev]);
+    setPlayerName(name);
+  }
 
   return (
     <>
@@ -503,6 +544,7 @@ export default function Traningsplan() {
             font-size:36px;line-height:1.05;margin:8px 0 8px;
           }
           .tp-intro{color:var(--muted-d);font-size:14.5px;line-height:1.6;font-weight:500;}
+          .tp-you{color:var(--muted-d);font-size:13px;font-weight:600;margin-top:10px;}
 
           .tp-tips{
             background:#fff;border:1px solid var(--line);border-radius:14px;
@@ -529,6 +571,11 @@ export default function Traningsplan() {
           .tp-ctitle{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:24px;
             line-height:1;color:var(--ink);}
           .tp-cnote{font-size:13px;color:var(--muted);font-weight:600;margin-left:auto;}
+          .tp-count{
+            font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12.5px;
+            letter-spacing:.03em;color:#0F7A3D;background:#E6F6EC;
+            border-radius:7px;padding:4px 9px;width:100%;
+          }
 
           .tp-start{
             width:100%;border:none;border-radius:11px;padding:14px;cursor:pointer;
@@ -591,6 +638,9 @@ export default function Traningsplan() {
               guidas du genom uppvärmning och alla övningar – en i taget – och loggar passet när du
               är klar.
             </p>
+            {playerName && (
+              <p className="tp-you">Visar din statistik som <strong>{playerName}</strong>.</p>
+            )}
           </section>
 
           <div className="tp-tips">
@@ -616,8 +666,16 @@ export default function Traningsplan() {
             <p className="tp-wnote">Uppvärmningen ingår automatiskt när du startar Pass A eller Pass B.</p>
           </section>
 
-          <PassCard pass={PASS_A} onStart={() => setActive(PASS_A)} />
-          <PassCard pass={PASS_B} onStart={() => setActive(PASS_B)} />
+          <PassCard
+            pass={PASS_A}
+            onStart={() => setActive(PASS_A)}
+            completedCount={sessionCounts[PASS_A.tag]}
+          />
+          <PassCard
+            pass={PASS_B}
+            onStart={() => setActive(PASS_B)}
+            completedCount={sessionCounts[PASS_B.tag]}
+          />
 
           <div className="tp-foot">
             <Link href="/">Till topplistan →</Link>
@@ -625,7 +683,9 @@ export default function Traningsplan() {
         </div>
       </div>
 
-      {active && <PassPlayer pass={active} onClose={() => setActive(null)} />}
+      {active && (
+        <PassPlayer pass={active} onClose={() => setActive(null)} onLogged={handleLogged} />
+      )}
     </>
   );
 }
