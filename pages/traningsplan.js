@@ -193,7 +193,7 @@ function ExerciseRow({ item }) {
   );
 }
 
-function PassCard({ pass, onStart, completedCount }) {
+function PassCard({ pass, onStart, completedCount, groupStat }) {
   return (
     <section className="tp-card">
       <div className="tp-chead">
@@ -203,6 +203,11 @@ function PassCard({ pass, onStart, completedCount }) {
         {completedCount > 0 && (
           <span className="tp-count">
             ✅ Klarat {completedCount} {completedCount === 1 ? "gång" : "gånger"}
+          </span>
+        )}
+        {groupStat && groupStat.sessions > 0 && (
+          <span className="tp-groupcount">
+            🌍 {groupStat.sessions} pass loggade av {groupStat.people} spelare
           </span>
         )}
       </div>
@@ -485,6 +490,23 @@ export default function Traningsplan() {
       });
   }, []);
 
+  const groupStats = useMemo(() => {
+    const stats = {
+      [PASS_A.tag]: { sessions: 0, people: new Set() },
+      [PASS_B.tag]: { sessions: 0, people: new Set() },
+    };
+    for (const e of entries) {
+      const tag = [PASS_A.tag, PASS_B.tag].find((t) => e.type?.startsWith(t));
+      if (!tag) continue;
+      stats[tag].sessions += 1;
+      stats[tag].people.add(e.name.trim().toLowerCase());
+    }
+    return {
+      [PASS_A.tag]: { sessions: stats[PASS_A.tag].sessions, people: stats[PASS_A.tag].people.size },
+      [PASS_B.tag]: { sessions: stats[PASS_B.tag].sessions, people: stats[PASS_B.tag].people.size },
+    };
+  }, [entries]);
+
   const sessionCounts = useMemo(() => {
     const key = playerName.trim().toLowerCase();
     const counts = { [PASS_A.tag]: 0, [PASS_B.tag]: 0 };
@@ -574,6 +596,11 @@ export default function Traningsplan() {
           .tp-count{
             font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12.5px;
             letter-spacing:.03em;color:#0F7A3D;background:#E6F6EC;
+            border-radius:7px;padding:4px 9px;width:100%;
+          }
+          .tp-groupcount{
+            font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:12.5px;
+            letter-spacing:.03em;color:var(--muted);background:var(--paper);
             border-radius:7px;padding:4px 9px;width:100%;
           }
 
@@ -670,11 +697,13 @@ export default function Traningsplan() {
             pass={PASS_A}
             onStart={() => setActive(PASS_A)}
             completedCount={sessionCounts[PASS_A.tag]}
+            groupStat={groupStats[PASS_A.tag]}
           />
           <PassCard
             pass={PASS_B}
             onStart={() => setActive(PASS_B)}
             completedCount={sessionCounts[PASS_B.tag]}
+            groupStat={groupStats[PASS_B.tag]}
           />
 
           <div className="tp-foot">
