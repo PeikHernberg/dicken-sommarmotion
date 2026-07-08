@@ -221,6 +221,7 @@ function SommarMotion() {
   const [error, setError] = useState("");
   const [confirmId, setConfirmId] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
 
   async function load() {
     setDbError(false);
@@ -288,6 +289,18 @@ function SommarMotion() {
       }),
     [entries]
   );
+
+  const searchedFeed = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return feed;
+    return feed.filter((e) => e.name.toLowerCase().includes(q));
+  }, [feed, search]);
+
+  const searchedPlayer = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return null;
+    return leaderboard.find((p) => p.name.toLowerCase().includes(q)) || null;
+  }, [leaderboard, search]);
 
   const fillPct = Math.min(total / MAX_GOAL, 1) * 100;
   const reachedCount = MILESTONES.filter((m) => total >= m.goal).length;
@@ -461,6 +474,8 @@ function SommarMotion() {
           .sm-lbh{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:20px;font-variant-numeric:tabular-nums;}
 
           .sm-feed{margin-top:16px;}
+          .sm-search{margin-bottom:12px;}
+          .sm-searchsum{font-size:13px;color:var(--muted);font-weight:600;margin:-4px 0 10px;}
           .sm-frow{display:flex;align-items:center;gap:13px;padding:12px 0;border-bottom:1px solid var(--line);}
           .sm-frow:last-child{border-bottom:none;}
           .sm-fmain{flex:1;min-width:0;}
@@ -667,10 +682,25 @@ function SommarMotion() {
 
           <div className="sm-card sm-feed">
             <h2 className="sm-h">Senaste passen</h2>
+            <input
+              className="sm-input sm-search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Sök på namn…"
+            />
+            {search.trim() && searchedPlayer && (
+              <div className="sm-searchsum">
+                {searchedPlayer.name} · {fmt(searchedPlayer.hours)} h · {searchedPlayer.sessions} pass
+                {searchedPlayer.streak.current >= 2 &&
+                  ` · 🔥 ${searchedPlayer.streak.current} dagar`}
+              </div>
+            )}
             {feed.length === 0 ? (
               <p className="sm-empty">Här dyker era pass upp efter hand.</p>
+            ) : searchedFeed.length === 0 ? (
+              <p className="sm-empty">Inga pass hittades för "{search}".</p>
             ) : (
-              feed.map((e) => (
+              searchedFeed.map((e) => (
                 <div key={e.id} className="sm-frow">
                   <div className="sm-fmain">
                     <div className="sm-fname">{e.name}</div>
